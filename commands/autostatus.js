@@ -1,10 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const isOwner = require('../lib/isOwner');
 
 const channelInfo = {
     contextInfo: {
-        forwardingScore: 999,
+        forwardingScore: 1,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
             newsletterJid: '120363161513685998@newsletter',
@@ -22,10 +21,10 @@ if (!fs.existsSync(configPath)) {
     fs.writeFileSync(configPath, JSON.stringify({ enabled: false }));
 }
 
-async function autoStatusCommand(sock, chatId, senderId, args) {
+async function autoStatusCommand(sock, chatId, msg, args) {
     try {
         // Check if sender is owner
-        if (!isOwner(senderId)) {
+        if (!msg.key.fromMe) {
             await sock.sendMessage(chatId, { 
                 text: '❌ This command can only be used by the owner!',
                 ...channelInfo
@@ -106,7 +105,7 @@ async function handleStatusUpdate(sock, status) {
                 try {
                     await sock.readMessages([msg.key]);
                     const sender = msg.key.participant || msg.key.remoteJid;
-                    console.log(`✅ Status Viewed `);
+                   // console.log(`✅ Status Viewed `);
                 } catch (err) {
                     if (err.message?.includes('rate-overlimit')) {
                         console.log('⚠️ Rate limit hit, waiting before retrying...');
