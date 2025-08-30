@@ -20,10 +20,10 @@ const { handleMessages, handleGroupParticipantUpdate, handleStatus } = require('
 const PhoneNumber = require('awesome-phonenumber')
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
 const { smsg, isUrl, generateMessageTag, getBuffer, getSizeMedia, fetch, await, sleep, reSize } = require('./lib/myfunc')
-const { 
+const {
     default: makeWASocket,
-    useMultiFileAuthState, 
-    DisconnectReason, 
+    useMultiFileAuthState,
+    DisconnectReason,
     fetchLatestBaileysVersion,
     generateForwardMessageContent,
     prepareWAMessageMedia,
@@ -37,6 +37,7 @@ const {
     delay
 } = require("@whiskeysockets/baileys")
 const NodeCache = require("node-cache")
+// Using a lightweight persisted store instead of makeInMemoryStore (compat across versions)
 const pino = require("pino")
 const readline = require("readline")
 const { parsePhoneNumber } = require("libphonenumber-js")
@@ -44,25 +45,42 @@ const { PHONENUMBER_MCC } = require('@whiskeysockets/baileys/lib/Utils/generics'
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
 
-// Create a store object with required methods
+// Simple store with persistence
+const STORE_FILE = './baileys_store.json'
 const store = {
     messages: {},
     contacts: {},
     chats: {},
-    groupMetadata: async (jid) => {
-        return {}
+    readFromFile(filePath = STORE_FILE) {
+        try {
+            if (fs.existsSync(filePath)) {
+                const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+                this.messages = data.messages || {}
+                this.contacts = data.contacts || {}
+                this.chats = data.chats || {}
+            }
+        } catch (e) {
+            console.warn('Failed to read store file:', e.message)
+        }
     },
-    bind: function(ev) {
-        // Handle events
+    writeToFile(filePath = STORE_FILE) {
+        try {
+            const data = JSON.stringify({ messages: this.messages, contacts: this.contacts, chats: this.chats })
+            fs.writeFileSync(filePath, data)
+        } catch (e) {
+            console.warn('Failed to write store file:', e.message)
+        }
+    },
+    bind(ev) {
         ev.on('messages.upsert', ({ messages }) => {
             messages.forEach(msg => {
                 if (msg.key && msg.key.remoteJid) {
-                    this.messages[msg.key.remoteJid] = this.messages[msg.key.remoteJid] || {}
-                    this.messages[msg.key.remoteJid][msg.key.id] = msg
+                    const jid = msg.key.remoteJid
+                    this.messages[jid] = this.messages[jid] || {}
+                    this.messages[jid][msg.key.id] = msg
                 }
             })
         })
-        
         ev.on('contacts.update', (contacts) => {
             contacts.forEach(contact => {
                 if (contact.id) {
@@ -70,15 +88,17 @@ const store = {
                 }
             })
         })
-        
         ev.on('chats.set', (chats) => {
             this.chats = chats
         })
     },
-    loadMessage: async (jid, id) => {
+    async loadMessage(jid, id) {
         return this.messages[jid]?.[id] || null
     }
 }
+
+store.readFromFile(STORE_FILE)
+setInterval(() => store.writeToFile(STORE_FILE), 10_000)
 
 let phoneNumber = "911234567890"
 let owner = JSON.parse(fs.readFileSync('./data/owner.json'))
@@ -101,7 +121,7 @@ const question = (text) => {
     }
 }
 
-         
+
 async function startXeonBotInc() {
     let { version, isLatest } = await fetchLatestBaileysVersion()
     const { state, saveCreds } = await useMultiFileAuthState(`./session`)
@@ -118,6 +138,7 @@ async function startXeonBotInc() {
         },
         markOnlineOnConnect: true,
         generateHighQualityLinkPreview: true,
+        syncFullHistory: true,
         getMessage: async (key) => {
             let jid = jidNormalizedUser(key.remoteJid)
             let msg = await store.loadMessage(jid, key.id)
@@ -141,14 +162,14 @@ async function startXeonBotInc() {
             }
             if (!XeonBotInc.public && !mek.key.fromMe && chatUpdate.type === 'notify') return
             if (mek.key.id.startsWith('BAE5') && mek.key.id.length === 16) return
-            
+
             try {
                 await handleMessages(XeonBotInc, chatUpdate, true)
             } catch (err) {
                 console.error("Error in handleMessages:", err)
                 // Only try to send error message if we have a valid chatId
                 if (mek.key && mek.key.remoteJid) {
-                    await XeonBotInc.sendMessage(mek.key.remoteJid, { 
+                    await XeonBotInc.sendMessage(mek.key.remoteJid, {
                         text: '❌ An error occurred while processing your message.',
                         contextInfo: {
                             forwardingScore: 1,
@@ -185,7 +206,7 @@ async function startXeonBotInc() {
 
     XeonBotInc.getName = (jid, withoutContact = false) => {
         id = XeonBotInc.decodeJid(jid)
-        withoutContact = XeonBotInc.withoutContact || withoutContact 
+        withoutContact = XeonBotInc.withoutContact || withoutContact
         let v
         if (id.endsWith("@g.us")) return new Promise(async (resolve) => {
             v = store.contacts[id] || {}
@@ -245,9 +266,9 @@ async function startXeonBotInc() {
         if (connection == "open") {
             console.log(chalk.magenta(` `))
             console.log(chalk.yellow(`🌿Connected to => ` + JSON.stringify(XeonBotInc.user, null, 2)))
-            
+
             const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';
-            await XeonBotInc.sendMessage(botNumber, { 
+            await XeonBotInc.sendMessage(botNumber, {
                 text: `🤖 Bot Connected Successfully!\n\n⏰ Time: ${new Date().toLocaleString()}\n✅ Status: Online and Ready!
                 \n✅Make sure to join below channel`,
                 contextInfo: {
@@ -270,18 +291,22 @@ async function startXeonBotInc() {
             console.log(chalk.magenta(`${global.themeemoji || '•'} CREDIT: MR UNIQUE HACKER`))
             console.log(chalk.green(`${global.themeemoji || '•'} 🤖 Bot Connected Successfully! ✅`))
         }
-        if (
-            connection === "close" &&
-            lastDisconnect &&
-            lastDisconnect.error &&
-            lastDisconnect.error.output.statusCode != 401
-        ) {
-            startXeonBotInc()
+        if (connection === 'close') {
+            const statusCode = lastDisconnect?.error?.output?.statusCode
+            if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+                try {
+                    rmSync('./session', { recursive: true, force: true })
+                } catch { }
+                console.log(chalk.red('Session logged out. Please re-authenticate.'))
+                startXeonBotInc()
+            } else {
+                startXeonBotInc()
+            }
         }
     })
 
     XeonBotInc.ev.on('creds.update', saveCreds)
-    
+
     XeonBotInc.ev.on('group-participants.update', async (update) => {
         await handleGroupParticipantUpdate(XeonBotInc, update);
     });
