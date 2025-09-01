@@ -10,6 +10,56 @@ function normalizeType(input) {
 }
 
 async function sendAnimu(sock, chatId, message, type) {
+    // Handle waifu, neko, and loli from different APIs
+    if (type === 'waifu' || type === 'neko') {
+        try {
+            const endpoint = `https://api.siputzx.my.id/api/r/${type}`;
+            const res = await axios.get(endpoint, { responseType: 'arraybuffer' });
+            
+            if (res.status === 200 && res.data) {
+                await sock.sendMessage(
+                    chatId,
+                    { image: res.data, caption: `anime: ${type}` },
+                    { quoted: message }
+                );
+                return;
+            }
+        } catch (error) {
+            console.error(`Error fetching ${type}:`, error.message);
+            await sock.sendMessage(
+                chatId,
+                { text: `❌ Failed to fetch ${type}.` },
+                { quoted: message }
+            );
+            return;
+        }
+    }
+
+    if (type === 'loli') {
+        try {
+            const endpoint = 'https://shizoapi.onrender.com/api/sfw/loli?apikey=shizo';
+            const res = await axios.get(endpoint, { responseType: 'arraybuffer' });
+            
+            if (res.status === 200 && res.data) {
+                await sock.sendMessage(
+                    chatId,
+                    { image: res.data, caption: `anime: ${type}` },
+                    { quoted: message }
+                );
+                return;
+            }
+        } catch (error) {
+            console.error(`Error fetching ${type}:`, error.message);
+            await sock.sendMessage(
+                chatId,
+                { text: `❌ Failed to fetch ${type}.` },
+                { quoted: message }
+            );
+            return;
+        }
+    }
+
+    // Handle other anime types from some-random-api
     const endpoint = `${ANIMU_BASE}/${type}`;
     const res = await axios.get(endpoint);
     const data = res.data || {};
@@ -44,7 +94,7 @@ async function animeCommand(sock, chatId, message, args) {
     const sub = normalizeType(subArg);
 
     const supported = [
-        'nom', 'poke', 'cry', 'kiss', 'pat', 'hug', 'wink', 'face-palm', 'quote'
+        'nom', 'poke', 'cry', 'kiss', 'pat', 'hug', 'wink', 'face-palm', 'quote', 'waifu', 'neko', 'loli'
     ];
 
     try {

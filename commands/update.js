@@ -211,9 +211,9 @@ async function updateCommand(sock, chatId, message, senderIsSudo, zipOverride) {
         }
         try {
             const v = require('../settings').version || '';
-            await sock.sendMessage(chatId, { text: `✅ Update done. Restarting…\nNew version: ${v}` }, { quoted: message });
+            await sock.sendMessage(chatId, { text: `✅ Update done. Restarting…` }, { quoted: message });
         } catch {
-            await sock.sendMessage(chatId, { text: '✅ Update done. Restarting…' }, { quoted: message });
+            await sock.sendMessage(chatId, { text: '✅ Restared Successfully\n Type .ping to check latest version.' }, { quoted: message });
         }
         await restartProcess(sock, chatId, message);
     } catch (err) {

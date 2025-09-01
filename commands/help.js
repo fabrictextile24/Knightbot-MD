@@ -54,6 +54,7 @@ async function helpCommand(sock, chatId, message) {
 ║ ➤ .tagall
 ║ ➤ .chatbot
 ║ ➤ .resetlink
+║ ➤ .antitag <on/off>
 ║ ➤ .welcome <on/off>
 ║ ➤ .goodbye <on/off>
 ╚═══════════════════╝
@@ -65,6 +66,7 @@ async function helpCommand(sock, chatId, message) {
 ║ ➤ .clearsession
 ║ ➤ .antidelete
 ║ ➤ .cleartmp
+║ ➤ .update
 ║ ➤ .setpp <reply to image>
 ║ ➤ .autoreact
 ║ ➤ .autotyping <on/off>
@@ -76,6 +78,8 @@ async function helpCommand(sock, chatId, message) {
 ║ ➤ .blur <image>
 ║ ➤ .simage <reply to sticker>
 ║ ➤ .sticker <reply to image>
+║ ➤ .removebg
+║ ➤ .remini
 ║ ➤ .crop <reply to image>
 ║ ➤ .tgsticker <Link>
 ║ ➤ .meme
@@ -182,6 +186,9 @@ async function helpCommand(sock, chatId, message) {
 
 ╔═══════════════════╗
 🖼️ *ANIME*:
+║ ➤ .neko
+║ ➤ .waifu
+║ ➤ .loli
 ║ ➤ .nom 
 ║ ➤ .poke 
 ║ ➤ .cry 

@@ -31,6 +31,7 @@ const { incrementMessageCount, topMembers } = require('./commands/topmembers');
 const ownerCommand = require('./commands/owner');
 const deleteCommand = require('./commands/delete');
 const { handleAntilinkCommand, handleLinkDetection } = require('./commands/antilink');
+const { handleAntitagCommand, handleTagDetection } = require('./commands/antitag');
 const { Antilink } = require('./lib/antilink');
 const memeCommand = require('./commands/meme');
 const tagCommand = require('./commands/tag');
@@ -102,6 +103,8 @@ const { animeCommand } = require('./commands/anime');
 const { piesCommand, piesAlias } = require('./commands/pies');
 const stickercropCommand = require('./commands/stickercrop');
 const updateCommand = require('./commands/update');
+const removebgCommand = require('./commands/removebg');
+const { reminiCommand } = require('./commands/remini');
 // Global settings
 global.packname = settings.packname;
 global.author = settings.author;
@@ -212,12 +215,13 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await handleChatbotResponse(sock, chatId, message, userMessage, senderId);
                 await Antilink(message, sock);
                 await handleBadwordDetection(sock, chatId, message, userMessage, senderId);
+                await handleTagDetection(sock, chatId, message, senderId);
             }
             return;
         }
 
         // List of admin commands
-        const adminCommands = ['.mute', '.unmute', '.ban', '.unban', '.promote', '.demote', '.kick', '.tagall', '.antilink'];
+        const adminCommands = ['.mute', '.unmute', '.ban', '.unban', '.promote', '.demote', '.kick', '.tagall', '.antilink', '.antitag'];
         const isAdminCommand = adminCommands.some(cmd => userMessage.startsWith(cmd));
 
         // List of owner commands
@@ -417,6 +421,23 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     return;
                 }
                 await handleAntilinkCommand(sock, chatId, userMessage, senderId, isSenderAdmin);
+                break;
+            case userMessage.startsWith('.antitag'):
+                if (!isGroup) {
+                    await sock.sendMessage(chatId, {
+                        text: 'This command can only be used in groups.',
+                        ...channelInfo
+                    });
+                    return;
+                }
+                if (!isBotAdmin) {
+                    await sock.sendMessage(chatId, {
+                        text: 'Please make the bot an admin first.',
+                        ...channelInfo
+                    });
+                    return;
+                }
+                await handleAntitagCommand(sock, chatId, userMessage, senderId, isSenderAdmin);
                 break;
             case userMessage === '.meme':
                 await memeCommand(sock, chatId, message);
@@ -905,6 +926,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
             case userMessage.startsWith('.face-palm'):
             case userMessage.startsWith('.animuquote'):
             case userMessage.startsWith('.quote'):
+            case userMessage.startsWith('.neko'):
+            case userMessage.startsWith('.waifu'):
+            case userMessage.startsWith('.loli'):
                 {
                     const parts = userMessage.trim().split(/\s+/);
                     let sub = parts[0].slice(1);
@@ -953,7 +977,12 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 }
                 commandExecuted = true;
                 break;
-
+            case userMessage.startsWith('.removebg') || userMessage.startsWith('.rmbg') || userMessage.startsWith('.nobg'):
+                await removebgCommand.exec(sock, message, userMessage.split(' ').slice(1));
+                break;
+            case userMessage.startsWith('.remini') || userMessage.startsWith('.enhance') || userMessage.startsWith('.upscale'):
+                await reminiCommand(sock, chatId, message, userMessage.split(' ').slice(1));
+                break;
             default:
                 if (isGroup) {
                     // Handle non-command group messages
@@ -962,6 +991,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     }
                     await Antilink(message, sock);
                     await handleBadwordDetection(sock, chatId, message, userMessage, senderId);
+                    await handleTagDetection(sock, chatId, message, senderId);
                 }
                 commandExecuted = false;
                 break;
@@ -1036,11 +1066,8 @@ async function handleGroupParticipantUpdate(sock, update) {
             const groupName = groupMetadata.subject;
             const groupDesc = groupMetadata.desc || 'No description available';
 
-            // Get welcome message from data
-            const data = JSON.parse(fs.readFileSync('./data/userGroupData.json'));
-            const welcomeData = data.welcome[id];
-            const welcomeMessage = welcomeData?.message || 'Welcome {user} to the group! 🎉';
-            const channelId = welcomeData?.channelId || '120363161513685998@newsletter';
+            // Use simple default welcome message
+            const welcomeMessage = 'Welcome {user} to {group}! 🎉';
 
             // Send welcome message for each new participant
             for (const participant of participants) {
@@ -1052,16 +1079,7 @@ async function handleGroupParticipantUpdate(sock, update) {
 
                 await sock.sendMessage(id, {
                     text: formattedMessage,
-                    mentions: [participant],
-                    contextInfo: {
-                        forwardingScore: 1,
-                        isForwarded: true,
-                        forwardedNewsletterMessageInfo: {
-                            newsletterJid: channelId,
-                            newsletterName: 'KnightBot MD',
-                            serverMessageId: -1
-                        }
-                    }
+                    mentions: [participant]
                 });
             }
         }
@@ -1076,11 +1094,8 @@ async function handleGroupParticipantUpdate(sock, update) {
             const groupMetadata = await sock.groupMetadata(id);
             const groupName = groupMetadata.subject;
 
-            // Get goodbye message from data
-            const data = JSON.parse(fs.readFileSync('./data/userGroupData.json'));
-            const goodbyeData = data.goodbye[id];
-            const goodbyeMessage = goodbyeData?.message || 'Goodbye {user} 👋';
-            const channelId = goodbyeData?.channelId || '120363161513685998@newsletter';
+            // Use simple default goodbye message
+            const goodbyeMessage = 'Goodbye {user} 👋';
 
             // Send goodbye message for each leaving participant
             for (const participant of participants) {
@@ -1091,16 +1106,7 @@ async function handleGroupParticipantUpdate(sock, update) {
 
                 await sock.sendMessage(id, {
                     text: formattedMessage,
-                    mentions: [participant],
-                    contextInfo: {
-                        forwardingScore: 1,
-                        isForwarded: true,
-                        forwardedNewsletterMessageInfo: {
-                            newsletterJid: channelId,
-                            newsletterName: 'KnightBot MD',
-                            serverMessageId: -1
-                        }
-                    }
+                    mentions: [participant]
                 });
             }
         }
