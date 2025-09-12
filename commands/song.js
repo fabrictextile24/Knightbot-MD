@@ -275,7 +275,7 @@ async function songCommand(sock, chatId, message) {
         const searchQuery = text.split(' ').slice(1).join(' ').trim();
         
         if (!searchQuery) {
-            return await sock.sendMessage(chatId, { text: "What song do you want to download?" });
+            return await sock.sendMessage(chatId, { text: "What song do you want to download?" }, { quoted: message });
         }
 
         // Determine if input is a YouTube link or search query
@@ -285,7 +285,7 @@ async function songCommand(sock, chatId, message) {
         } else {
             const { videos } = await yts(searchQuery);
             if (!videos || videos.length === 0) {
-                return await sock.sendMessage(chatId, { text: "No songs found!" });
+                return await sock.sendMessage(chatId, { text: "No songs found!" }, { quoted: message });
             }
             videoUrl = videos[0].url;
             var selectedTitle = videos[0].title || searchQuery;
@@ -478,7 +478,7 @@ async function songCommand(sock, chatId, message) {
         
         if (!result || !result.status || !result.result || !result.result.download) {
             console.error(`[SONG] Invalid result structure:`, JSON.stringify(result, null, 2));
-            return await sock.sendMessage(chatId, { text: "Failed to get a valid download link from the API." });
+            return await sock.sendMessage(chatId, { text: "Failed to get a valid download link from the API." }, { quoted: message });
         }
 
         // Minimal logs: only errors, so do not log the download URL
@@ -501,7 +501,7 @@ async function songCommand(sock, chatId, message) {
             });
         } catch (err) {
             logAxiosError('SONG.fileDownload', err);
-            return await sock.sendMessage(chatId, { text: "Failed to download the song (network error)." });
+            return await sock.sendMessage(chatId, { text: "Failed to download the song (network error)." }, { quoted: message });
         }
         const ctHeader = response.headers?.['content-type'];
         const ct = Array.isArray(ctHeader) ? (ctHeader[0] || '') : (ctHeader || '');
@@ -516,7 +516,7 @@ async function songCommand(sock, chatId, message) {
         // Minimal logs
         if (response.status < 200 || response.status >= 300) {
             console.error(`[SONG] HTTP error downloading file: ${response.status} ${response.statusText}`);
-            return await sock.sendMessage(chatId, { text: "Failed to download the song file from the server (bad status)." });
+            return await sock.sendMessage(chatId, { text: "Failed to download the song file from the server (bad status)." }, { quoted: message });
         }
 
         await new Promise((resolve, reject) => {
@@ -541,7 +541,7 @@ async function songCommand(sock, chatId, message) {
             // Minimal logs
         } catch {}
         if (!fileSize || fileSize < 10240) { // <10KB indicates failure
-            return await sock.sendMessage(chatId, { text: "Song file seems invalid (too small). Please try again." });
+            return await sock.sendMessage(chatId, { text: "Song file seems invalid (too small). Please try again." }, { quoted: message });
         }
 
         // Convert to MP3 for maximum compatibility if needed
@@ -592,7 +592,7 @@ async function songCommand(sock, chatId, message) {
     } catch (error) {
         console.error(`[SONG] General error:`);
         if (error?.isAxiosError) logAxiosError('SONG.general', error); else console.error(error);
-        await sock.sendMessage(chatId, { text: "Download failed. Please try again later." });
+        await sock.sendMessage(chatId, { text: "Download failed. Please try again later." }, { quoted: message });
     }
 }
 

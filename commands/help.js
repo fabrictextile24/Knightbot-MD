@@ -61,16 +61,18 @@ async function helpCommand(sock, chatId, message) {
 
 ╔═══════════════════╗
 🔒 *Owner Commands*:
-║ ➤ .mode
-║ ➤ .autostatus
+║ ➤ .mode <public/private>
 ║ ➤ .clearsession
 ║ ➤ .antidelete
 ║ ➤ .cleartmp
 ║ ➤ .update
 ║ ➤ .setpp <reply to image>
-║ ➤ .autoreact
+║ ➤ .autoreact <on/off>
+║ ➤ .autostatus <on/off>
+║ ➤ .autostatus react <on/off>
 ║ ➤ .autotyping <on/off>
 ║ ➤ .autoread <on/off>
+║ ➤ .anticall <on/off>
 ╚═══════════════════╝
 
 ╔═══════════════════╗
@@ -85,6 +87,8 @@ async function helpCommand(sock, chatId, message) {
 ║ ➤ .meme
 ║ ➤ .take <packname> 
 ║ ➤ .emojimix <emj1>+<emj2>
+║ ➤ .igs <insta link>
+║ ➤ .igsc <insta link>
 ╚═══════════════════╝  
 
 ╔═══════════════════╗
